@@ -1,0 +1,4 @@
+package: github.com/slok/ecs-watcher
+import:
+- package: github.com/Sirupsen/logrus
+  version: v0.10.0
