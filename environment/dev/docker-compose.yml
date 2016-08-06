@@ -1,0 +1,22 @@
+version: "2"
+services:
+  ecs-watcher:
+    build:
+      context: ../..
+      dockerfile: environment/dev/Dockerfile
+    volumes:
+      - ../..:/go/src/github.com/slok/ecs-watcher
+      - ~/.gitconfig:/home/ecs-watcher/.gitignore:ro
+      - ~/.ssh:/home/ecs-watcher/.ssh:ro
+      - ~/.bash_history.ecs-watcher:/home/ecs-watcher/.bash_history
+    environment:
+      - ENVIRONMENT=local
+      - AWS_REGION
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+
+    command: "go build -o ./bin/ecs-watcher ./ && ./bin/ecs-watcher"
+    ports:
+      - "9184:9184"
