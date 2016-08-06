@@ -2,3 +2,5 @@ package: github.com/slok/ecs-watcher
 import:
 - package: github.com/Sirupsen/logrus
   version: v0.10.0
+- package: github.com/aws/aws-sdk-go
+  version: v1.3.1

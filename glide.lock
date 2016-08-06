@@ -1,6 +1,12 @@
-hash: 7f9c68fc51fdc5eb03b7cc5ea25e57dfcb170fdba521e085261f9020d9d425f6
-updated: 2016-08-06T15:27:32.347103748Z
+hash: 4deeb417bf6919a3a74c0525ba7917057934b7e7bd54446d7a0c74607f675ad0
+updated: 2016-08-06T16:06:45.937257215Z
 imports:
+- name: github.com/aws/aws-sdk-go
+  version: 5f1600d670430842d2d8f8c2c4652b6236b29026
 - name: github.com/Sirupsen/logrus
-  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+  version: ""
+- name: golang.org/x/sys
+  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  subpackages:
+  - unix
 testImports: []
