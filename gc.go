@@ -18,9 +18,9 @@ type GC struct {
 }
 
 // NewGC creates a new garbage collector
-func NewGC(interval time.Duration) (*GC, error) {
+func NewGC(cfg Config) (*GC, error) {
 	gc := &GC{
-		interval: interval,
+		interval: cfg.gcInterval,
 	}
 	// TODO: clener selection
 	k, err := NewKiller(cfg.awsRegion, cfg.gcStepPercent, cfg.unhealthyTag)

@@ -39,14 +39,18 @@ type AgentChecker struct {
 
 	// The tag to mark tge unhealthy instances
 	markTag MarkTag
+
+	// The time to wait before marking an unhealthy instance
+	markAfter time.Duration
 }
 
 // NewAgentChecker creates an AgentChecker
-func NewAgentChecker(clusterName string, awsRegion string, tag string) (*AgentChecker, error) {
+func NewAgentChecker(clusterName string, awsRegion string, tag string, markAfter time.Duration) (*AgentChecker, error) {
 	a := &AgentChecker{
 		clusterName:      clusterName,
 		unhealthies:      make(map[string]*unhealthyInstance),
 		unhealthiesMutex: &sync.Mutex{},
+		markAfter:        markAfter,
 	}
 
 	// Set the tag
@@ -158,7 +162,7 @@ func (a *AgentChecker) Mark() error {
 	for id, v := range a.unhealthies {
 		// Check if we need to mark the unhelthies
 		t := time.Now().UTC().Sub(v.started)
-		if t >= cfg.markAfter {
+		if t >= a.markAfter {
 			resources = append(resources, aws.String(id))
 		} else {
 		}

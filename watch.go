@@ -21,14 +21,14 @@ type Watcher struct {
 }
 
 // NewWatcher creates anew watcher
-func NewWatcher(cluster string, interval time.Duration) (*Watcher, error) {
+func NewWatcher(cfg Config) (*Watcher, error) {
 	w := &Watcher{
-		clusterName: cluster,
-		interval:    interval,
+		clusterName: cfg.clusterName,
+		interval:    cfg.checkInterval,
 	}
 
 	// TODO: Checker selection
-	c, err := NewAgentChecker(w.clusterName, cfg.awsRegion, cfg.unhealthyTag)
+	c, err := NewAgentChecker(w.clusterName, cfg.awsRegion, cfg.unhealthyTag, cfg.markAfter)
 	if err != nil {
 		return nil, err
 	}

@@ -17,19 +17,20 @@ func Main() int {
 		logrus.Error(err)
 		return 1
 	}
+	cfg := gCfg
 
 	if cfg.debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
 	// Create the watcher
-	w, err := NewWatcher(cfg.clusterName, cfg.checkInterval)
+	w, err := NewWatcher(cfg)
 	if err != nil {
 		logrus.Errorf("Error creating watcher: %s", err)
 		return 1
 	}
 
-	gc, err := NewGC(cfg.gcInterval)
+	gc, err := NewGC(cfg)
 	if err != nil {
 		logrus.Errorf("Error creating garbage colletion: %s", err)
 		return 1

@@ -18,7 +18,8 @@ const (
 	defaultUnhealthyTag  = "unhealthy:true"
 )
 
-var cfg = struct {
+// Config represents the main configuration
+type Config struct {
 	fs *flag.FlagSet
 
 	clusterName   string
@@ -29,72 +30,73 @@ var cfg = struct {
 	awsRegion     string
 	unhealthyTag  string
 	markAfter     time.Duration
-}{}
+}
+
+var gCfg = Config{}
 
 // init will load all the cmd flags
 func init() {
-	cfg.fs = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	gCfg.fs = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	cfg.fs.StringVar(
-		&cfg.clusterName, "cluster", "",
+	gCfg.fs.StringVar(
+		&gCfg.clusterName, "cluster", "",
 		"The target cluster name",
 	)
 
-	cfg.fs.StringVar(
-		&cfg.awsRegion, "region", "",
+	gCfg.fs.StringVar(
+		&gCfg.awsRegion, "region", "",
 		"The AWS region of the cluster",
 	)
 
-	cfg.fs.DurationVar(
-		&cfg.checkInterval, "check.interval", defaultCheckInterval,
+	gCfg.fs.DurationVar(
+		&gCfg.checkInterval, "check.interval", defaultCheckInterval,
 		"The interval for checking the cluster",
 	)
 
-	cfg.fs.DurationVar(
-		&cfg.gcInterval, "gc.interval", defaultGCInterval,
+	gCfg.fs.DurationVar(
+		&gCfg.gcInterval, "gc.interval", defaultGCInterval,
 		"The minimum interval for garbage collection of unhealthy targets",
 	)
 
-	cfg.fs.DurationVar(
-		&cfg.markAfter, "unhealthy.after", defaultMarkAfter,
+	gCfg.fs.DurationVar(
+		&gCfg.markAfter, "unhealthy.after", defaultMarkAfter,
 		"The duration that a target needs to be unhealthy to declare as unhealthy",
 	)
 
-	cfg.fs.IntVar(
-		&cfg.gcStepPercent, "gc.step.percent", defaultStepPercent,
+	gCfg.fs.IntVar(
+		&gCfg.gcStepPercent, "gc.step.percent", defaultStepPercent,
 		"The step percent of total unhealthy targets when cleaning",
 	)
 
-	cfg.fs.StringVar(
-		&cfg.unhealthyTag, "unhealthy.tag", defaultUnhealthyTag,
+	gCfg.fs.StringVar(
+		&gCfg.unhealthyTag, "unhealthy.tag", defaultUnhealthyTag,
 		"The tag used to mark unhealty labels key:value form",
 	)
 
-	cfg.fs.BoolVar(
-		&cfg.debug, "debug", defaultDebug,
+	gCfg.fs.BoolVar(
+		&gCfg.debug, "debug", defaultDebug,
 		"Run in debug mode",
 	)
 }
 
 func parse(args []string) error {
 
-	if err := cfg.fs.Parse(args); err != nil {
+	if err := gCfg.fs.Parse(args); err != nil {
 		return err
 	}
-	match, err := regexp.MatchString(`^[^:]+:[^:]+$`, cfg.unhealthyTag)
+	match, err := regexp.MatchString(`^[^:]+:[^:]+$`, gCfg.unhealthyTag)
 	if !match || err != nil {
 		return fmt.Errorf("Wrong tag format, must be key:value format. Help: %s -h", os.Args[0])
 	}
 
-	if cfg.awsRegion == "" {
+	if gCfg.awsRegion == "" {
 		return fmt.Errorf("Cluster AWS region must be set. Help: %s -h", os.Args[0])
 	}
 
-	if cfg.clusterName == "" {
+	if gCfg.clusterName == "" {
 		return fmt.Errorf("Cluster name can't be empty. Help: %s -h", os.Args[0])
 	}
-
-	if len(cfg.fs.Args()) != 0 {
+	if len(gCfg.fs.Args()) != 0 {
 		return fmt.Errorf("Invalid command line arguments. Help: %s -h", os.Args[0])
 
 	}
