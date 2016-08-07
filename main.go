@@ -6,6 +6,10 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+// Generate AWS API mocks running go generate
+//go:generate mockgen -source ./vendor/github.com/aws/aws-sdk-go/service/ecs/ecsiface/interface.go -package sdk -destination ./mock/aws/sdk/ecsiface_mock.go
+//go:generate mockgen -source ./vendor/github.com/aws/aws-sdk-go/service/ec2/ec2iface/interface.go -package sdk -destination ./mock/aws/sdk/ec2iface_mock.go
+
 func main() {
 	os.Exit(Main())
 }

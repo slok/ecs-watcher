@@ -24,7 +24,7 @@ func TestParse(t *testing.T) {
 		}
 
 		if err == nil && !test.correct {
-			t.Errorf("- %+v\n Shouldt give an error, it didn't", test)
+			t.Errorf("- %+v\n Should give an error, it didn't", test)
 		}
 
 	}
