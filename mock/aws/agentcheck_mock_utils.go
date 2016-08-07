@@ -7,6 +7,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 
@@ -99,4 +100,24 @@ func MockDescribeContainerInstancesUnhealthies(t *testing.T, mockMatcher *sdk.Mo
 	}
 	// Only one time
 	mockMatcher.EXPECT().DescribeContainerInstances(gomock.Any()).Return(resp, err)
+}
+
+// MockCreateTagsError will error on each call
+func MockCreateTagsError(t *testing.T, mockMatcher *sdk.MockEC2API) {
+	logrus.Warningf("Mocking AWS iface: CreateTags")
+	err := errors.New("")
+	mockMatcher.EXPECT().CreateTags(gomock.Any()).AnyTimes().Return(nil, err)
+}
+
+// MockCreateTags will tag the instnaces on the received map
+func MockCreateTags(t *testing.T, mockMatcher *sdk.MockEC2API, taggedInstances map[string]string) {
+	logrus.Warningf("Mocking AWS iface: CreateTags")
+	var err error
+
+	mockMatcher.EXPECT().CreateTags(gomock.Any()).Do(
+		func(input *ec2.CreateTagsInput) {
+			for _, i := range input.Resources {
+				taggedInstances[aws.StringValue(i)] = fmt.Sprintf("%s:%s", aws.StringValue(input.Tags[0].Key), aws.StringValue(input.Tags[0].Value))
+			}
+		}).AnyTimes().Return(nil, err)
 }

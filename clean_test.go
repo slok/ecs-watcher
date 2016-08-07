@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/golang/mock/gomock"
 
 	awsMock "github.com/slok/ecs-watcher/mock/aws"
@@ -209,5 +211,159 @@ func TestAgentCheckerDescribeContainerInstancesUnhealthyKeepOld(t *testing.T) {
 
 		}
 	}
+}
 
+func TestAgentCheckerMarkZeroUnhealthies(t *testing.T) {
+
+	a := &AgentChecker{
+		clusterName:      "test",
+		unhealthies:      make(map[string]*unhealthyInstance),
+		unhealthiesMutex: &sync.Mutex{},
+	}
+
+	err := a.Mark()
+	if err != nil {
+		t.Errorf("Check should'n give an error: %s", err)
+	}
+
+	if len(a.unhealthies) != 0 {
+		t.Errorf("Unhealthy instances should be 0, got %d", len(a.unhealthies))
+	}
+}
+
+func TestAgentCheckerMarkError(t *testing.T) {
+	// Create mock for AWS API
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockEC2Cli := sdk.NewMockEC2API(ctrl)
+
+	// Set our mock desired result
+	awsMock.MockCreateTagsError(t, mockEC2Cli)
+
+	a := &AgentChecker{
+		clusterName:      "test",
+		unhealthies:      make(map[string]*unhealthyInstance),
+		unhealthiesMutex: &sync.Mutex{},
+	}
+	a.ec2Cli = mockEC2Cli
+
+	// Add one in order to continue with the flow of calling AWS API
+	a.unhealthies["a"] = &unhealthyInstance{
+		instance: &ecs.ContainerInstance{},
+		started:  time.Now().UTC(),
+	}
+
+	err := a.Mark()
+	if err == nil {
+		t.Errorf("Mark should give an error, it didn't")
+	}
+}
+
+func TestAgentCheckerMarkAfterTime(t *testing.T) {
+	tests := []struct {
+		markAfter time.Duration
+		started   time.Time
+
+		shouldMark bool
+	}{
+		{30 * time.Second, time.Now().UTC().Add(-29 * time.Second), false},
+		{30 * time.Second, time.Now().UTC().Add(-31 * time.Second), true},
+		{10 * time.Minute, time.Now().UTC().Add(-5 * time.Minute), false},
+		{1 * time.Second, time.Now().UTC().Add(-1 * time.Second), true},
+	}
+
+	for _, test := range tests {
+		// Create mock for AWS API
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockEC2Cli := sdk.NewMockEC2API(ctrl)
+
+		// Set our mock desired result
+		marked := map[string]string{}
+		awsMock.MockCreateTags(t, mockEC2Cli, marked)
+
+		a := &AgentChecker{
+			clusterName:      "test",
+			unhealthies:      make(map[string]*unhealthyInstance),
+			unhealthiesMutex: &sync.Mutex{},
+			markAfter:        test.markAfter,
+		}
+		a.ec2Cli = mockEC2Cli
+
+		a.unhealthies["test"] = &unhealthyInstance{
+			instance: &ecs.ContainerInstance{},
+			started:  test.started,
+		}
+
+		err := a.Mark()
+		if err != nil {
+			t.Errorf("-%+v\n  -Mark shouldn't give an error: %s", test, err)
+		}
+
+		// Check if tagged
+		_, ok := a.unhealthies["test"]
+		if test.shouldMark {
+			if ok {
+				t.Errorf("-%+v\n  -After marking, instance shouldn't be in unhealthy ones", test)
+			}
+
+			if _, ok = marked["test"]; !ok {
+				t.Errorf("-%+v\n  -After marking, instance should be marked by the API, it isn't", test)
+			}
+		}
+
+		if !test.shouldMark && !ok {
+			t.Errorf("-%+v\n  -After not marking, instance should continue in unhealthy ones", test)
+		}
+
+	}
+}
+
+func TestAgentCheckerMarkMultiple(t *testing.T) {
+	quantity := 100
+
+	// Create mock for AWS API
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockEC2Cli := sdk.NewMockEC2API(ctrl)
+
+	// Set our mock desired result
+	marked := map[string]string{}
+	awsMock.MockCreateTags(t, mockEC2Cli, marked)
+
+	a := &AgentChecker{
+		clusterName:      "test",
+		unhealthies:      make(map[string]*unhealthyInstance),
+		unhealthiesMutex: &sync.Mutex{},
+		markAfter:        30 * time.Second,
+		markTag:          MarkTag{key: "key", value: "value"},
+	}
+	a.ec2Cli = mockEC2Cli
+
+	for i := 0; i < quantity; i++ {
+		a.unhealthies[fmt.Sprintf("i-%d", i)] = &unhealthyInstance{
+			instance: &ecs.ContainerInstance{},
+			started:  time.Now().UTC().Add(-1 * time.Minute),
+		}
+	}
+
+	err := a.Mark()
+	if err != nil {
+		t.Errorf("Mark shouldn't give an error: %s", err)
+	}
+
+	// Check if tagged
+	if len(a.unhealthies) != 0 {
+		t.Errorf("After marking them they should be deleted, this should be empty, got: %d", len(a.unhealthies))
+	}
+
+	if len(marked) != quantity {
+		t.Errorf("Wrong number of instances marked, got: %d, want: %d", len(marked), quantity)
+	}
+
+	for _, tag := range marked {
+		if tag != "key:value" {
+			t.Errorf("Wrong tag on instance: %s", tag)
+		}
+	}
 }

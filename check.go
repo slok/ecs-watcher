@@ -164,7 +164,6 @@ func (a *AgentChecker) Mark() error {
 		t := time.Now().UTC().Sub(v.started)
 		if t >= a.markAfter {
 			resources = append(resources, aws.String(id))
-		} else {
 		}
 	}
 
