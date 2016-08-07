@@ -34,7 +34,7 @@ func NewGC(cfg Config) (*GC, error) {
 }
 
 // Run will start the garbage collector
-func (g *GC) Run(dryRun bool) error {
+func (g *GC) Run() error {
 
 	if g.cleaner == nil {
 		return fmt.Errorf("No cleaner active on the garbage collector")

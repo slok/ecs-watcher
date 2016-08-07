@@ -33,7 +33,7 @@ func TestWatcherNoChecker(t *testing.T) {
 	w := &Watcher{}
 	err := w.Run()
 	if err == nil {
-		t.Errorf("Watcher run without checker Should give error")
+		t.Errorf("Watcher run without checker should give error")
 	}
 }
 

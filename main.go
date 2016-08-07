@@ -35,7 +35,7 @@ func Main() int {
 		logrus.Errorf("Error creating garbage colletion: %s", err)
 		return 1
 	}
-	go gc.Run(false)
+	go gc.Run()
 
 	logrus.Infof("Ready to rock")
 
