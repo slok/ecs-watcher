@@ -4,7 +4,7 @@ USER root
 
 # Prepare
 WORKDIR /go/src/github.com/slok/ecs-watcher/
-COPY . ./
+COPY ./ ./
 RUN mkdir -p /bin
 
 # Build
@@ -17,3 +17,4 @@ RUN rm -rf /go/src/*
 
 
 ENTRYPOINT [ "/bin/ecs-watcher" ]
+CMD ["--help"]

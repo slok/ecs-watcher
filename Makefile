@@ -120,12 +120,12 @@ gogen: build
 image:
 	docker build \
 	--label version=$(COMMIT) \
-	-t $(SERVICE_NAME) \
-	-t $(REPOSITORY):latest \
-	-t $(REPOSITORY):$(shell git rev-parse --short HEAD) \
-	-t $(REPOSITORY):$(BRANCH) \
+	-t $(IMAGE_NAME) \
+	-t $(IMAGE_NAME):latest \
+	-t $(IMAGE_NAME):$(shell git rev-parse --short HEAD) \
+	-t $(IMAGE_NAME):$(BRANCH) \
 	-f environment/prod/Dockerfile \
-	environment/prod
+	./
 
 # Push the production docker image to the repository
 #push: image

@@ -12,7 +12,7 @@ kill the instance.
 
 + Your instances should be in an autoscalation group, ECS watcher only kills instances, it doesn't run again
 * Your automated instnaces should connect automatically to the ECS cluster
-* YOur serices should be HA, this means that need to have more than one instances per service, remember that
+* Your services should be HA, this means that need to have more than one instances per service, remember that
 ECS watcher will kill the unhealthy instances without notification
 
 ## Minimum usage example:
