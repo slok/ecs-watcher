@@ -23,12 +23,22 @@ func Main() int {
 	}
 
 	// Create the watcher
-	w, err := NewWatcher(cfg.clusterName, cfg.interval)
+	w, err := NewWatcher(cfg.clusterName, cfg.checkInterval)
 	if err != nil {
-		logrus.Errorf("Error creatin watcher: %s", err)
+		logrus.Errorf("Error creating watcher: %s", err)
 		return 1
 	}
+
+	gc, err := NewGC(cfg.gcInterval)
+	if err != nil {
+		logrus.Errorf("Error creating garbage colletion: %s", err)
+		return 1
+	}
+	go gc.Run(false)
+
 	logrus.Infof("Ready to rock")
+
+	// Start the garbage collector
 
 	// Start the watcher loop
 	err = w.Run()
@@ -36,5 +46,6 @@ func Main() int {
 		logrus.Errorf("Error after starting watcher: %s", err)
 		return 1
 	}
+
 	return 0
 }

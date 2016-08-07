@@ -16,17 +16,12 @@ import (
 )
 
 const (
-	maxAWSAPIResult = 50
+	checkMaxAWSAPIResult = 50
 )
 
 type unhealthyInstance struct {
 	instance *ecs.ContainerInstance
 	started  time.Time
-}
-
-type mTag struct {
-	key   string
-	value string
 }
 
 // AgentChecker will check the agent status on the ECS cluster instances
@@ -43,7 +38,7 @@ type AgentChecker struct {
 	unhealthiesMutex *sync.Mutex
 
 	// The tag to mark tge unhealthy instances
-	markTag mTag
+	markTag MarkTag
 }
 
 // NewAgentChecker creates an AgentChecker
@@ -56,7 +51,7 @@ func NewAgentChecker(clusterName string, awsRegion string, tag string) (*AgentCh
 
 	// Set the tag
 	splTag := strings.Split(tag, ":")
-	a.markTag = mTag{splTag[0], splTag[1]}
+	a.markTag = MarkTag{splTag[0], splTag[1]}
 
 	// Create AWS session
 	s := session.New(&aws.Config{Region: aws.String(awsRegion)})
@@ -83,7 +78,7 @@ func (a *AgentChecker) Check() error {
 	// Get the container instance ARNs
 	lparams := &ecs.ListContainerInstancesInput{
 		Cluster:    aws.String(a.clusterName),
-		MaxResults: aws.Int64(maxAWSAPIResult),
+		MaxResults: aws.Int64(checkMaxAWSAPIResult),
 	}
 	var arns []*string
 	err := a.ecsCli.ListContainerInstancesPages(lparams,
@@ -96,6 +91,11 @@ func (a *AgentChecker) Check() error {
 	if err != nil {
 		return err
 	}
+	if len(arns) == 0 {
+		logrus.Warningf("No container instances present")
+		return nil
+	}
+
 	logrus.Debugf("Got %d container instance ARNs", len(arns))
 
 	// Check the status of the container instances
@@ -115,9 +115,11 @@ func (a *AgentChecker) Check() error {
 	// Save the unhealthy ones
 	for _, ci := range resp.ContainerInstances {
 		// if ok don't do nothing
-		if !aws.BoolValue(ci.AgentConnected) {
+		if aws.BoolValue(ci.AgentConnected) {
 			continue
 		}
+		logrus.Warning("%+v", ci)
+
 		// TODO: Check status of the instance?
 
 		// The instance seems unhealthy because of the agent, check if is already there

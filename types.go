@@ -8,3 +8,14 @@ type Checker interface {
 	// Mark will mark the spoted unhealthy checked stuff
 	Mark() error
 }
+
+// Cleaner interface represents the one that will take the action of cleaning marked targets
+type Cleaner interface {
+	Clean() error
+}
+
+//MarkTag represents the marking tag
+type MarkTag struct {
+	key   string
+	value string
+}
