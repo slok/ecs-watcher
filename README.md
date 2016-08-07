@@ -1,5 +1,7 @@
 # ECS watcher
 
+[![Build Status](https://travis-ci.org/slok/ecs-watcher.svg?branch=master)](https://travis-ci.org/slok/ecs-watcher)
+
 ECS agent watcher will destroy the instances that are unhealthy. To know if
 an instance is unhealthy on the cluster, ECS watcher will check periodically
 the status of the instance ECS agent, if this agent is not connected for a given
@@ -22,7 +24,7 @@ ecs-watcher --cluster="slok-ECSCluster1-15OBYPKBNXIO6" --region=us-west-2
 ## Options
 ```bash
 ecs-watcher --help
-Usage of ./bin/ecs-watcher:
+Usage of ecs-watcher:
   -check.interval duration
         The interval for checking the cluster (default 5s)
   -cluster string
