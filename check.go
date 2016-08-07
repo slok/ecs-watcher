@@ -110,35 +110,39 @@ func (a *AgentChecker) Check() error {
 
 	// Use this as counter, maybe the older unhealty ones are in the process of
 	// removal, so we can't use the unhelty total as the cluster unhealthy total number
-	var unhCount int
 	a.unhealthiesMutex.Lock()
+
+	// We are setting here the actual state of the unhealthy ones, but before storing them here
+	// will check if there where already in the past check iteration, if is there then copy with
+	// the started timestamp, if isn't there then a new one.
+	// With this approach we remove the ones that the agent connected again, this removes minor spikes,
+	// because the unhealthy instances need to be unhealthy for X duration (configured in unhealthy.after)
+	newUnhealthies := make(map[string]*unhealthyInstance)
 	// Save the unhealthy ones
 	for _, ci := range resp.ContainerInstances {
 		// if ok don't do nothing
 		if aws.BoolValue(ci.AgentConnected) {
 			continue
 		}
-		logrus.Warning("%+v", ci)
 
 		// TODO: Check status of the instance?
 
-		// The instance seems unhealthy because of the agent, check if is already there
-		if _, ok := a.unhealthies[aws.StringValue(ci.Ec2InstanceId)]; !ok {
-			unhCount++
-			ui := &unhealthyInstance{
-				instance: ci,
-				started:  time.Now().UTC(),
-			}
-			a.unhealthies[aws.StringValue(ci.Ec2InstanceId)] = ui
+		ui := &unhealthyInstance{
+			instance: ci,
+			started:  time.Now().UTC(),
 		}
+
+		// The instance seems unhealthy already from previous iterations, set the
+		// started timestamp to the correct one (when it realy started, not now)
+		if v, ok := a.unhealthies[aws.StringValue(ci.Ec2InstanceId)]; ok {
+			ui.started = v.started
+		}
+		newUnhealthies[aws.StringValue(ci.Ec2InstanceId)] = ui
+
 	}
+	a.unhealthies = newUnhealthies
 	a.unhealthiesMutex.Unlock()
 
-	if unhCount > 0 {
-		logrus.Infof("new %d of %d are unhealthy", unhCount, len(arns))
-	} else {
-		logrus.Debugf("No new unhealthy instances")
-	}
 	logrus.Infof("%d total unhealthy", len(a.unhealthies))
 
 	return nil
@@ -149,15 +153,20 @@ func (a *AgentChecker) Mark() error {
 	a.unhealthiesMutex.Lock()
 	defer a.unhealthiesMutex.Unlock()
 
-	if len(a.unhealthies) == 0 {
-		logrus.Debugf("Skipping marking, no unhealthy instances")
-		return nil
-	}
-
 	var resources []*string
 
-	for id := range a.unhealthies {
-		resources = append(resources, aws.String(id))
+	for id, v := range a.unhealthies {
+		// Check if we need to mark the unhelthies
+		t := time.Now().UTC().Sub(v.started)
+		if t >= cfg.markAfter {
+			resources = append(resources, aws.String(id))
+		} else {
+		}
+	}
+
+	if len(resources) == 0 {
+		logrus.Debugf("Skipping marking, no unhealthy instances")
+		return nil
 	}
 
 	// mark all the unhealthy images
@@ -172,9 +181,11 @@ func (a *AgentChecker) Mark() error {
 		return err
 	}
 
-	logrus.Infof("Marked %d", len(a.unhealthies))
-	// Reset the unhealthies, they are already marked (we are save because of the mutex)
-	a.unhealthies = make(map[string]*unhealthyInstance)
+	// We are good to remove from the unhealthy ones, they are already marked
+	for _, i := range resources {
+		delete(a.unhealthies, aws.StringValue(i))
+	}
+	logrus.Infof("Marked %d", len(resources))
 
 	return nil
 }

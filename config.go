@@ -13,6 +13,7 @@ const (
 	defaultDebug         = false
 	defaultCheckInterval = 5 * time.Second
 	defaultGCInterval    = 2 * time.Second
+	defaultMarkAfter     = 1 * time.Minute
 	defaultStepPercent   = 20
 	defaultUnhealthyTag  = "unhealthy:true"
 )
@@ -27,6 +28,7 @@ var cfg = struct {
 	gcStepPercent int
 	awsRegion     string
 	unhealthyTag  string
+	markAfter     time.Duration
 }{}
 
 // init will load all the cmd flags
@@ -47,9 +49,15 @@ func init() {
 		&cfg.checkInterval, "check.interval", defaultCheckInterval,
 		"The interval for checking the cluster",
 	)
+
 	cfg.fs.DurationVar(
 		&cfg.gcInterval, "gc.interval", defaultGCInterval,
 		"The minimum interval for garbage collection of unhealthy targets",
+	)
+
+	cfg.fs.DurationVar(
+		&cfg.markAfter, "unhealthy.after", defaultMarkAfter,
+		"The duration that a target needs to be unhealthy to declare as unhealthy",
 	)
 
 	cfg.fs.IntVar(
