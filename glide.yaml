@@ -4,3 +4,6 @@ import:
   version: v0.10.0
 - package: github.com/aws/aws-sdk-go
   version: v1.3.1
+- package: github.com/golang/mock
+  subpackages:
+  - gomock
