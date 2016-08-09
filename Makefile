@@ -31,11 +31,11 @@ LOGIN_FILE := ~/.devlogin
 # Bash history file for container shell
 HISTORY_FILE := ~/.bash_history.$(SERVICE_NAME)
 
-# Try to detect current branch if not provided from environment
-BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
-
-# Commit hash from git
-COMMIT=$(shell git rev-parse --short HEAD)
+# Get git tag
+TAG := $(shell git describe --tags --exact-match)
+ifndef TAG
+	TAG := latest
+endif
 
 # Remove login flag if older than 10 hours
 _ := $(shell find $(LOGIN_FILE) -mmin +600 -delete)
@@ -119,11 +119,8 @@ gogen: build
 # Build the production image
 image:
 	docker build \
-	--label version=$(COMMIT) \
 	-t $(IMAGE_NAME) \
-	-t $(IMAGE_NAME):latest \
-	-t $(IMAGE_NAME):$(shell git rev-parse --short HEAD) \
-	-t $(IMAGE_NAME):$(BRANCH) \
+	-t $(IMAGE_NAME):$(TAG) \
 	-f environment/prod/Dockerfile \
 	./
 
