@@ -7,7 +7,8 @@ make vet
 make test
 
 
-# On successful build, upload the image if this is not a PR and this is a master build
-#if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then
-#    BRANCH=${TRAVIS_BRANCH} make push
-#fi
+# On successful build
+if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -e $DOCKER_EMAIL -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
+    docker push slok/ecs-watcher;
+fi
