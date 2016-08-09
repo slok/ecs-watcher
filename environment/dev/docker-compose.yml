@@ -16,6 +16,9 @@ services:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
+      - DOCKER_EMAIL
+      - DOCKER_LOGIN
+      - DOCKER_PASSWORD
 
     command: "go build -o ./bin/ecs-watcher ./ && ./bin/ecs-watcher"
     ports:
