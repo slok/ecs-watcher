@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -41,20 +44,35 @@ func Main() int {
 	}
 
 	logrus.Infof("Ready to rock")
+	errChan := make(chan error, 10)
 
 	// Start the garbage collector if wanted
 	if !cfg.disableGC {
-		go gc.Run()
+		go func() {
+			errChan <- gc.Run()
+		}()
 	} else {
 		logrus.Warningf("Garbage collector is disabled, not running it!")
 	}
 
 	// Start the watcher loop
-	err = w.Run()
-	if err != nil {
-		logrus.Errorf("Error after starting watcher: %s", err)
-		return 1
-	}
+	go func() {
+		errChan <- w.Run()
+	}()
 
-	return 0
+	// Capture signals and errors
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	for {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				logrus.Error(err)
+				return 1
+			}
+		case s := <-signalChan:
+			logrus.Println(fmt.Sprintf("Captured %v. Exiting...", s))
+			return 0
+		}
+	}
 }
