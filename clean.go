@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
+const instanceStateRunningCode = "16"
+
 // Killer will clean unhealthy imaes that are tagged
 type Killer struct {
 	ec2Cli     ec2iface.EC2API
@@ -22,12 +24,16 @@ type Killer struct {
 
 	// The tag that marked instnaces to clean have
 	markTag MarkTag
+
+	// Should we wait to instance terminated status?
+	waitTerminate bool
 }
 
 // NewKiller creates a new killer
 func NewKiller(awsRegion string, stepPercent int, mtag string) (*Killer, error) {
 	k := &Killer{
-		step: stepPercent,
+		step:          stepPercent,
+		waitTerminate: true,
 	}
 
 	// Set the tag
@@ -59,6 +65,10 @@ func (k *Killer) Clean() error {
 				Name:   aws.String(fmt.Sprintf("tag:%s", k.markTag.key)),
 				Values: []*string{aws.String(k.markTag.value)},
 			},
+			{
+				Name:   aws.String("instance-state-code"),
+				Values: []*string{aws.String(instanceStateRunningCode)},
+			},
 		},
 	}
 
@@ -68,10 +78,7 @@ func (k *Killer) Clean() error {
 		func(page *ec2.DescribeInstancesOutput, lastPage bool) bool {
 			for _, r := range page.Reservations {
 				for _, i := range r.Instances {
-					// Only kill running ones
-					if aws.StringValue(i.State.Name) == ec2.InstanceStateNameRunning {
-						instances = append(instances, i)
-					}
+					instances = append(instances, i)
 				}
 			}
 			return true
@@ -91,7 +98,7 @@ func (k *Killer) Clean() error {
 	if n == 0 {
 		n = 1
 	}
-	logrus.Debugf("Start killing in batches of %d", n)
+	logrus.Infof("Start killing in batches of %d", n)
 
 	// Start killing them in steps and wait until it was terminated
 	for i := 0; i < len(instances); i = i + n {
@@ -116,19 +123,22 @@ func (k *Killer) Clean() error {
 		params := &ec2.TerminateInstancesInput{
 			InstanceIds: ids,
 		}
-		_, err := k.ec2Cli.TerminateInstances(params)
 
+		// Finish him!
+		_, err = k.ec2Cli.TerminateInstances(params)
 		if err != nil {
 			return err
 		}
 
-		// Wait
-		paramsWait := &ec2.DescribeInstancesInput{
-			InstanceIds: ids,
-		}
-		err = k.ec2WaitCli.WaitUntilInstanceTerminated(paramsWait)
-		if err != nil {
-			return err
+		// Wait if wanted
+		if k.waitTerminate {
+			paramsWait := &ec2.DescribeInstancesInput{
+				InstanceIds: ids,
+			}
+			err = k.ec2WaitCli.WaitUntilInstanceTerminated(paramsWait)
+			if err != nil {
+				return err
+			}
 		}
 		logrus.Infof("Killed %d targets", len(ids))
 	}
