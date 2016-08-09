@@ -36,14 +36,18 @@ func Main() int {
 
 	gc, err := NewGC(cfg)
 	if err != nil {
-		logrus.Errorf("Error creating garbage colletion: %s", err)
+		logrus.Errorf("Error creating garbage colletor: %s", err)
 		return 1
 	}
-	go gc.Run()
 
 	logrus.Infof("Ready to rock")
 
-	// Start the garbage collector
+	// Start the garbage collector if wanted
+	if !cfg.disableGC {
+		go gc.Run()
+	} else {
+		logrus.Warningf("Garbage collector is disabled, not running it!")
+	}
 
 	// Start the watcher loop
 	err = w.Run()

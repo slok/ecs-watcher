@@ -16,6 +16,7 @@ const (
 	defaultMarkAfter     = 1 * time.Minute
 	defaultStepPercent   = 20
 	defaultUnhealthyTag  = "unhealthy:true"
+	defaultDisableGC     = false
 )
 
 // Config represents the main configuration
@@ -30,6 +31,7 @@ type Config struct {
 	awsRegion     string
 	unhealthyTag  string
 	markAfter     time.Duration
+	disableGC     bool
 }
 
 var gCfg = Config{}
@@ -76,6 +78,11 @@ func init() {
 	gCfg.fs.BoolVar(
 		&gCfg.debug, "debug", defaultDebug,
 		"Run in debug mode",
+	)
+
+	gCfg.fs.BoolVar(
+		&gCfg.disableGC, "disable.gc", defaultDisableGC,
+		"Don't run garbage collector",
 	)
 }
 
