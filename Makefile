@@ -125,6 +125,6 @@ image:
 	./
 
 # Push the production docker image to the repository
-#push: image
-#	docker push $(REPOSITORY)
-#
+push: image
+	docker login -e $DOCKER_EMAIL -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
+	docker push $(REPOSITORY)
